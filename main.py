@@ -42,7 +42,6 @@ def add_hug(post_id):
     conn.commit()
     conn.close()
 
-# --- MANUAL MODERATION ---
 def contains_buzzwords(text):
     banned_words = [
         "synergy", "leverage", "roi", "humbled to announce", 
@@ -59,15 +58,20 @@ def contains_buzzwords(text):
 init_db()
 
 st.title("📉 LinkedOut")
-st.subheader("The Anti-Professional Network")
-st.markdown("No hustle. No flex. Just vibes.")
+st.caption("No hustle. No flex. Just vibes.")
 
-# --- SIDEBAR: USER PROFILE ---
-with st.sidebar:
-    st.header("Who are you today?")
+st.divider()
+
+# --- STEP 1: WHO ARE YOU? (Top of Page) ---
+st.subheader("1. Who are you today?")
+
+# We use columns to make it look like a form row
+col1, col2 = st.columns(2)
+
+with col1:
     username = st.text_input("Display Name", value="Anonymous Burnout")
-    
-    # Status Selection with Custom Option
+
+with col2:
     status_option = st.selectbox("Current Status", [
         "🟢 Touching Grass",
         "🔴 Pretending to Work",
@@ -76,27 +80,29 @@ with st.sidebar:
         "⚪ Actually Working (Ew)",
         "✏️ Create Custom Status..."
     ])
-    
-    # Logic: If they choose 'Custom', show a text box
-    if status_option == "✏️ Create Custom Status...":
-        custom_status_text = st.text_input("Type your vibe:", placeholder="e.g. Eating Amala", max_chars=25)
-        # If they leave it blank, give them a default
-        if custom_status_text:
-            status = f"🟣 {custom_status_text}"
-        else:
-            status = "🟣 Mystery Vibe"
-    else:
-        status = status_option
-        
-    st.divider()
-    st.caption("This works like a forum. Anyone who accesses this app sees the same feed.")
 
-# --- POST INPUT ---
+# Custom status logic
+if status_option == "✏️ Create Custom Status...":
+    custom_status_text = st.text_input("Type your custom vibe:", placeholder="e.g. Eating Amala", max_chars=25)
+    if custom_status_text:
+        status = f"🟣 {custom_status_text}"
+    else:
+        status = "🟣 Mystery Vibe"
+else:
+    status = status_option
+
+# Show the user what they look like
+st.info(f"Posting as: **{username}** [{status}]")
+
+st.divider()
+
+# --- STEP 2: POST INPUT ---
+st.subheader("2. Vent to the Void")
+
 with st.form("new_post_form", clear_on_submit=True):
-    st.write("Create a Post:")
-    new_post = st.text_area("Vent here...", height=100, placeholder="I spilled coffee on my resume...")
+    new_post = st.text_area("What's wrong?", height=100, placeholder="I spilled coffee on my resume...")
     
-    submitted = st.form_submit_button("Post Update")
+    submitted = st.form_submit_button("Post Update", use_container_width=True)
     
     if submitted:
         if not new_post:
@@ -105,16 +111,16 @@ with st.form("new_post_form", clear_on_submit=True):
             is_toxic, word = contains_buzzwords(new_post)
             
             if is_toxic:
-                st.error(f"🚫 BLOCKED: We detected toxic corporate slang: '{word}'. Get that LinkedIn energy out of here.")
+                st.error(f"🚫 BLOCKED: Toxic word detected: '{word}'. Be real.")
             else:
                 full_username = f"{username} [{status}]"
                 add_post(full_username, new_post)
-                st.success("Posted to the void.")
+                st.success("Posted.")
                 st.rerun()
 
 st.divider()
 
-# --- THE FEED ---
+# --- STEP 3: THE FEED ---
 st.subheader("The Feed")
 
 posts = get_posts()
@@ -130,15 +136,14 @@ for post in posts:
     hugs = post[4]
 
     with st.container(border=True):
-        col1, col2 = st.columns([0.85, 0.15])
+        # Post Header
+        st.markdown(f"**{user}**")
+        st.caption(f"{timestamp}")
         
-        with col1:
-            st.markdown(f"**@{user}**")
-            st.caption(f"{timestamp}")
-            st.info(content)
-            
-        with col2:
-            st.write("")
-            if st.button(f"🫂 {hugs}", key=f"hug_{post_id}"):
-                add_hug(post_id)
-                st.rerun()
+        # Post Body
+        st.markdown(content)
+        
+        # Action Buttons (Full width hug button)
+        if st.button(f"🫂 Send Hug ({hugs})", key=f"hug_{post_id}", use_container_width=True):
+            add_hug(post_id)
+            st.rerun()
